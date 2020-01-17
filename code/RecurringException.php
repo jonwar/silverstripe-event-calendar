@@ -1,23 +1,34 @@
 <?php
 
+namespace Unclecheese\EventCalendar;
+
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Forms\DateField;
+use SilverStripe\Forms\FieldList;
+use SilverStripe\Security\Permission;
+use Unclecheese\EventCalendar\CalendarEvent;
+
 class RecurringException extends DataObject {
-	
+
+	private static $table_name = 'RecurringException';
+
 	private static $db = array (
 		'ExceptionDate' => 'Date'
 	);
-	
+
 	private static $has_one = array (
-		'CalendarEvent' => 'CalendarEvent'
+		'CalendarEvent' => CalendarEvent::class
 	);
 
 
 	private static $default_sort = "ExceptionDate ASC";
-	
+
 
     public function getCMSFields() {
-            DateField::set_default_config('showcalendar', true);
+//            DateField::set_default_config('showcalendar', true);
             $f = new FieldList(
-                    new DateField('ExceptionDate',_t('CalendarDateTime.EXCEPTIONDATE','Exception Date'))
+//                    new DateField('ExceptionDate',_t('CalendarDateTime.EXCEPTIONDATE','Exception Date'))
+                    new DateField('ExceptionDate',_t(CalendarDateTime::class.'.EXCEPTIONDATE','Exception Date'))
             );
 
             $this->extend('updateCMSFields', $f);
@@ -27,7 +38,8 @@ class RecurringException extends DataObject {
 
    public function summaryFields() {
             return array (
-                    'FormattedExceptionDate' => _t('Calendar.EXCEPTIONDATE','Exception date')
+//                    'FormattedExceptionDate' => _t('Calendar.EXCEPTIONDATE','Exception date')
+                    'FormattedExceptionDate' => _t(Calendar::class.'.EXCEPTIONDATE','Exception date')
             );
     }
 
@@ -37,18 +49,18 @@ class RecurringException extends DataObject {
     }
 
 
-    public function canCreate($member = null) {
+    public function canCreate($member = null, $context = array()) {
         return Permission::check("CMS_ACCESS_CMSMain");
     }
-    
+
     public function canEdit($member = null) {
         return Permission::check("CMS_ACCESS_CMSMain");
     }
-    
+
     public function canDelete($member = null) {
         return Permission::check("CMS_ACCESS_CMSMain");
     }
-    
+
     public function canView($member = null) {
         return Permission::check("CMS_ACCESS_CMSMain");
     }

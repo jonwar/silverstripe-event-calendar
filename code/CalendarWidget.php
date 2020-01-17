@@ -1,8 +1,15 @@
 <?php
 
+namespace Unclecheese\EventCalendar;
+
+use SilverStripe\View\ViewableData;
+use SilverStripe\Core\Convert;
+use SilverStripe\View\Requirements;
+
+
 
 class CalendarWidget extends ViewableData {
-	
+
 	protected $calendar;
 
 	protected $selectionStart;
@@ -18,7 +25,7 @@ class CalendarWidget extends ViewableData {
 	public function setOption($k, $v) {
 		$this->options[$k] = $v;
 	}
-	
+
 	public function getDataAttributes() {
 		$attributes = "";
 		$this->options['url'] = $this->calendar->Link();
@@ -38,12 +45,24 @@ class CalendarWidget extends ViewableData {
 	}
 
 	public function forTemplate() {
-		Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");		
-		Requirements::javascript("event_calendar/javascript/calendar_widget.js");
-		$locale_file = _t('Calendar.DATEJSFILE','calendar_en.js');
-		Requirements::javascript("event_calendar/javascript/lang/{$locale_file}");
-		Requirements::javascript("event_calendar/javascript/calendar_widget_init.js");
-		Requirements::css("event_calendar/css/calendar_widget.css");
+		Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
+//		Requirements::javascript('silverstripe/admin:thirdparty/jquery/jquery.js');
+
+//		Requirements::javascript("event_calendar/javascript/calendar_widget.js");
+		Requirements::javascript("unclecheese/event_calendar:javascript/calendar_widget.js");
+
+//		$locale_file = _t('Calendar.DATEJSFILE','calendar_en.js');
+		$locale_file = _t(Calendar::class.'.DATEJSFILE','calendar_en.js');
+
+//		Requirements::javascript("event_calendar/javascript/lang/{$locale_file}");
+		Requirements::javascript("unclecheese/event_calendar:javascript/lang/{$locale_file}");
+
+//		Requirements::javascript("event_calendar/javascript/calendar_widget_init.js");
+		Requirements::javascript("unclecheese/event_calendar:javascript/calendar_widget_init.js");
+
+//		Requirements::css("event_calendar/css/calendar_widget.css");
+		Requirements::css("unclecheese/event_calendar:css/calendar_widget.css");
+
 		return '<div class="calendar-widget" ' . $this->getDataAttributes() . '></div>';
 	}
 }

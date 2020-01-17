@@ -1,28 +1,39 @@
 {
-	"name":"unclecheese/event-calendar",
-	"type": "silverstripe-module",
-	"description": "Event Calendar for the SilverStripe CMS",
-	"keywords": ["silverstripe", "events"],
-	"license": "BSD-3-Clause",
-	"authors":[
-		{
-			"name": "Aaron Carlino",
-			"homepage": "http://leftandmain.com"
-		}
-	],
-	"require": {
-		"php": ">=5.3.2",
-		"silverstripe/framework": ">=3.1",
-		"silverstripe/cms": ">=3.1",
-		"johngrogg/ics-parser" : "1.0.3"
-	},
-	"support": {
-		"issues": "https://github.com/unclecheese/silverstripe-event-calendar/issues"
-	},
-	"extra": {
-		"installer-name": "event_calendar"
-	},
-	"replace": {
-		"silverstripe/event-calendar": "*"
-	}
+    "name": "unclecheese/event_calendar",
+    "description": "Event Calendar for the SilverStripe CMS",
+    "type": "silverstripe-vendormodule",
+    "license": "BSD-3-Clause",
+    "keywords": [
+        "silverstripe",
+        "events"
+    ],
+    "authors": [
+        {
+            "name": "Aaron Carlino",
+            "homepage": "http://leftandmain.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6",
+        "johngrogg/ics-parser": "v2.1.7",
+        "silverstripe/framework": "^4@dev",
+        "silverstripe/versioned": "^1@dev",
+        "silverstripe/crontask": "^2.0",
+        "silverstripe/vendor-plugin": "^1.4"
+    },
+    "extra": {
+    	"installer-name": "event_calendar",
+        "expose": [
+            "css",
+            "images",
+            "javascript"
+        ]
+    },
+    "autoload": {
+        "psr-4": {
+            "unclecheese\\event_calendar\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

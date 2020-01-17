@@ -1,6 +1,39 @@
 <?php
 
+namespace Unclecheese\EventCalendar;
+
+use Page;
+use PageController;
+use DateTime;
+use DateTimezone;
+
+use SilverStripe\Core\Config\Config;
+use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\DataList;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Core\Convert;
+use SilverStripe\View\Requirements;
+use SilverStripe\Forms\DropdownField;
+use SilverStripe\Forms\NumericField;
+use SilverStripe\Forms\TextField;
+use SilverStripe\Forms\GridField\GridField;
+use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
+use SilverStripe\Forms\CheckboxSetField;
+use SilverStripe\Forms\Form;
+use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\FormAction;
+use SilverStripe\Control\Controller;
+use SilverStripe\Control\RSS\RSSFeed;
+use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTP;
+
+use Altumo\Utils\sfDate\sfDate;
+use Altumo\Utils\sfDate\sfTime;
+
 class Calendar extends Page {
+
+	private static $table_name = 'Calendar';
 
 	private static $db = array(
 		'DefaultDateHeader' => 'Varchar(50)',
@@ -12,20 +45,20 @@ class Calendar extends Page {
 	);
 
 	private static $has_many = array (
-		'Announcements' => 'CalendarAnnouncement',
-		'Feeds' => 'ICSFeed'
+		'Announcements' => CalendarAnnouncement::class,
+		'Feeds' => ICSFeed::class
 	);
 
 	private static $many_many = array (
-		'NestedCalendars' => 'Calendar'
+		'NestedCalendars' => Calendar::class
 	);
 
 	private static $belongs_many_many = array (
-		'ParentCalendars' => 'Calendar'
+		'ParentCalendars' => Calendar::class
 	);
 
 	private static $allowed_children = array (
-		'CalendarEvent'
+		CalendarEvent::class
 	);
 
 	private static $defaults = array (
@@ -38,13 +71,15 @@ class Calendar extends Page {
 
 	private static $reccurring_event_index = 0;
 
-	private static $icon = "event_calendar/images/calendar";
+//	private static $icon = "event_calendar/images/calendar";
+//  private static $icon = 'unclecheese/event_calendar: images/calendar-file.gif';
+	private static $icon_class = "font-icon-calendar";
 
 	private static $description = "A collection of Calendar Events";
 
-	private static $event_class = "CalendarEvent";
+	private static $event_class = CalendarEvent::class;
 
-	private static $announcement_class = "CalendarAnnouncement";
+	private static $announcement_class = CalendarAnnouncement::class;
 
 	private static $timezone = "America/New_York";
 
@@ -75,53 +110,71 @@ class Calendar extends Page {
 
 		$this->beforeUpdateCMSFields(function($f) use ($self) {
 
-			Requirements::javascript('event_calendar/javascript/calendar_cms.js');
+//			Requirements::javascript('event_calendar/javascript/calendar_cms.js');
+			Requirements::javascript('unclecheese/event_calendar:javascript/calendar_cms.js');
 
-			$configuration = _t('Calendar.CONFIGURATION','Configuration');
+//			$configuration = _t('Calendar.CONFIGURATION','Configuration');
+			$configuration = _t(Calendar::class.'.CONFIGURATION','Configuration');
 			$f->addFieldsToTab("Root.$configuration", array(
-				DropdownField::create('DefaultView',_t('Calendar.DEFAULTVIEW','Default view'), array (
-					'upcoming' => _t('Calendar.UPCOMINGVIEW',"Show a list of upcoming events."),
-					'month' => _t('Calendar.MONTHVIEW',"Show this month's events."),
-					'week' => _t('Calendar.WEEKVIEW',"Show this week's events. If none, fall back on this month's"),
-					'today' => _t('Calendar.TODAYVIEW',"Show today's events. If none, fall back on this week's events"),
-					'weekend' => _t('Calendar.WEEKENDVIEW',"Show this weekend's events.")
+//				DropdownField::create('DefaultView',_t('Calendar.DEFAULTVIEW','Default view'), array (
+//					'upcoming' => _t('Calendar.UPCOMINGVIEW',"Show a list of upcoming events."),
+//					'month' => _t('Calendar.MONTHVIEW',"Show this month's events."),
+//					'week' => _t('Calendar.WEEKVIEW',"Show this week's events. If none, fall back on this month's"),
+//					'today' => _t('Calendar.TODAYVIEW',"Show today's events. If none, fall back on this week's events"),
+//					'weekend' => _t('Calendar.WEEKENDVIEW',"Show this weekend's events.")
+				DropdownField::create('DefaultView',_t(Calendar::class.'.DEFAULTVIEW','Default view'), array (
+					'upcoming' => _t(Calendar::class.'.UPCOMINGVIEW',"Show a list of upcoming events."),
+					'month' => _t(Calendar::class.'.MONTHVIEW',"Show this month's events."),
+					'week' => _t(Calendar::class.'.WEEKVIEW',"Show this week's events. If none, fall back on this month's"),
+					'today' => _t(Calendar::class.'.TODAYVIEW',"Show today's events. If none, fall back on this week's events"),
+					'weekend' => _t(Calendar::class.'.WEEKENDVIEW',"Show this weekend's events.")
 				))->addExtraClass('defaultView'),
-				NumericField::create('DefaultFutureMonths', _t('Calendar.DEFAULTFUTUREMONTHS','Number maximum number of future months to show in default view'))->addExtraClass('defaultFutureMonths'),
-				NumericField::create('EventsPerPage', _t('Calendar.EVENTSPERPAGE','Events per page')),
-				TextField::create('DefaultDateHeader', _t('Calendar.DEFAULTDATEHEADER','Default date header (displays when no date range has been selected)')),
-				NumericField::create('OtherDatesCount', _t('Calendar.NUMBERFUTUREDATES','Number of future dates to show for repeating events'))
+//				NumericField::create('DefaultFutureMonths', _t('Calendar.DEFAULTFUTUREMONTHS','Number maximum number of future months to show in default view'))->addExtraClass('defaultFutureMonths'),
+				NumericField::create('DefaultFutureMonths', _t(Calendar::class.'.DEFAULTFUTUREMONTHS','Number maximum number of future months to show in default view'))->addExtraClass('defaultFutureMonths'),
+//				NumericField::create('EventsPerPage', _t('Calendar.EVENTSPERPAGE','Events per page')),
+				NumericField::create('EventsPerPage', _t(Calendar::class.'.EVENTSPERPAGE','Events per page')),
+//				TextField::create('DefaultDateHeader', _t('Calendar.DEFAULTDATEHEADER','Default date header (displays when no date range has been selected)')),
+				TextField::create('DefaultDateHeader', _t(Calendar::class.'.DEFAULTDATEHEADER','Default date header (displays when no date range has been selected)')),
+//				NumericField::create('OtherDatesCount', _t('Calendar.NUMBERFUTUREDATES','Number of future dates to show for repeating events'))
+				NumericField::create('OtherDatesCount', _t(Calendar::class.'.NUMBERFUTUREDATES','Number of future dates to show for repeating events'))
 			));
 
 			// Announcements
-			$announcements = _t('Calendar.Announcements','Announcements');
+//			$announcements = _t('Calendar.Announcements','Announcements');
+			$announcements = _t(Calendar::class.'.Announcements','Announcements');
 			$f->addFieldToTab("Root.$announcements", $announcementsField = GridField::create(
 					"Announcements",
 					$announcements,
 					$self->Announcements(),
 					GridFieldConfig_RecordEditor::create()
 				));
-			$announcementsField->setDescription(_t('Calendar.ANNOUNCEMENTDESCRIPTION','Announcements are simple entries you can add to your calendar that do not have detail pages, e.g. "Office closed"'));
+//			$announcementsField->setDescription(_t('Calendar.ANNOUNCEMENTDESCRIPTION','Announcements are simple entries you can add to your calendar that do not have detail pages, e.g. "Office closed"'));
+			$announcementsField->setDescription(_t(Calendar::class.'.ANNOUNCEMENTDESCRIPTION','Announcements are simple entries you can add to your calendar that do not have detail pages, e.g. "Office closed"'));
 
 			// Feeds
-			$feeds = _t('Calendar.FEEDS','Feeds');
+//			$feeds = _t('Calendar.FEEDS','Feeds');
+			$feeds = _t(Calendar::class.'.FEEDS','Feeds');
 			$f->addFieldToTab("Root.$feeds", $feedsField = GridField::create(
 				"Feeds",
 				$feeds,
 				$self->Feeds(),
 				GridFieldConfig_RecordEditor::create()
 			));
-			$feedsField->setDescription(_t('Calendar.ICSFEEDDESCRIPTION','Add ICS feeds to your calendar to include events from external sources, e.g. a Google Calendar'));
+//			$feedsField->setDescription(_t('Calendar.ICSFEEDDESCRIPTION','Add ICS feeds to your calendar to include events from external sources, e.g. a Google Calendar'));
+			$feedsField->setDescription(_t(Calendar::class.'.ICSFEEDDESCRIPTION','Add ICS feeds to your calendar to include events from external sources, e.g. a Google Calendar'));
 
 			$otherCals = Calendar::get()->exclude(array("ID" => $self->ID));
 			if($otherCals->exists()) {
 				$f->addFieldToTab("Root.$feeds", new CheckboxSetField(
 					'NestedCalendars',
-					_t('Calendar.NESTEDCALENDARS','Include events from these calendars'),
+//					_t('Calendar.NESTEDCALENDARS','Include events from these calendars'),
+					_t(Calendar::class.'.NESTEDCALENDARS','Include events from these calendars'),
 					$otherCals->map('ID', 'Link')
 				));
 			}
 
-			$f->addFieldToTab("Root.Main", new TextField('RSSTitle', _t('Calendar.RSSTITLE','Title of RSS Feed')),'Content');
+//			$f->addFieldToTab("Root.Main", new TextField('RSSTitle', _t('Calendar.RSSTITLE','Title of RSS Feed')),'Content');
+			$f->addFieldToTab("Root.Main", new TextField('RSSTitle', _t(Calendar::class.'.RSSTITLE','Title of RSS Feed')),'Content');
 
 		});
 
@@ -172,40 +225,44 @@ class Calendar extends Page {
 	}
 
 	public function getEventList($start, $end, $filter = null, $limit = null, $announcement_filter = null) {
-		if(Config::inst()->get("Calendar", "caching_enabled")) {
+
+		if(Config::inst()->get(Calendar::class, "caching_enabled")) {
 			return $this->getCachedEventList($start, $end, $filter, $limit);
 		}
 
 		$eventList = new ArrayList();
 
 		foreach($this->getAllCalendars() as $calendar) {
+
 			if($events = $calendar->getStandardEvents($start, $end, $filter)) {
 				$eventList->merge($events);
 			}
 
-			$announcements = DataList::create($this->getAnnouncementClass())
-				->filter(array(
-					"CalendarID" => $calendar->ID,
-					"StartDate:LessThan:Not" => $start,
-					"EndDate:GreaterThan:Not" => $end,
-				));
-			if($announcement_filter) {
-				$announcements = $announcements->where($announcement_filter);
-			}
+//TODO: uncomment when working
+//			$announcements = DataList::create($this->getAnnouncementClass())
+//				->filter(array(
+//					"CalendarID" => $calendar->ID,
+//					"StartDate:LessThan:Not" => $start,
+//					"EndDate:GreaterThan:Not" => $end,
+//				));
 
-			if($announcements) {
-				foreach($announcements as $announcement) {
-					$eventList->push($announcement);
-				}
-			}
+//			if($announcement_filter) {
+//				$announcements = $announcements->where($announcement_filter);
+//			}
 
-			if($recurring = $calendar->getRecurringEvents($filter)) {
-				$eventList = $calendar->addRecurringEvents($start, $end, $recurring, $eventList);
-			}
+//			if($announcements) {
+//				foreach($announcements as $announcement) {
+//					$eventList->push($announcement);
+//				}
+//			}
 
-			if($feedevents = $calendar->getFeedEvents($start,$end)) {
-				$eventList->merge($feedevents);
-			}
+//			if($recurring = $calendar->getRecurringEvents($filter)) {
+//				$eventList = $calendar->addRecurringEvents($start, $end, $recurring, $eventList);
+//			}
+
+//			if($feedevents = $calendar->getFeedEvents($start,$end)) {
+//				$eventList->merge($feedevents);
+//			}
 		}
 
 		$eventList = $eventList->sort(array("StartDate" => "ASC", "StartTime" => "ASC"));
@@ -215,6 +272,9 @@ class Calendar extends Page {
 	}
 
 	protected function getStandardEvents($start, $end, $filter = null) {
+
+/* TODO: uncomment when working
+
 		$children = $this->AllChildren();
 		$ids = $children->column('ID');
 		$datetimeClass = $this->getDateTimeClass();
@@ -246,6 +306,9 @@ class Calendar extends Page {
 		if($filter) {
 			$list = $list->where($filter);
 		}
+*/
+		$list = $this->AllChildren();	//TODO: remove when above is working
+//exit($list[2]->Title);
 
 		return $list;
 	}
@@ -445,7 +508,7 @@ class Calendar extends Page {
 	public function CalendarWidget() {
 		$calendar = CalendarWidget::create($this);
 		$controller = Controller::curr();
-		if($controller->class == "Calendar_Controller" || is_subclass_of($controller, "Calendar_Controller")) {
+		if($controller->class == CalendarController::class || is_subclass_of($controller, CalendarController::class)) {
 			if($controller->getView() != "default") {
 				if($startDate = $controller->getStartDate()) {
 					$calendar->setOption('start', $startDate->format('Y-m-d'));
@@ -460,16 +523,16 @@ class Calendar extends Page {
 
 	public function MonthJumpForm() {
 		$controller = Controller::curr();
-		if($controller->class == "Calendar_Controller" || is_subclass_of($controller, "Calendar_Controller")) {
+		if($controller->class == CalendarController::class || is_subclass_of($controller, CalendarController::class)) {
 			return Controller::curr()->MonthJumpForm();
 		}
-		$c = new Calendar_Controller($this);
+		$c = new CalendarController($this);
 		return $c->MonthJumpForm();
 	}
 
 }
 
-class Calendar_Controller extends Page_Controller {
+class CalendarController extends PageController {
 
 	private static $allowed_actions = array (
 		'show',
@@ -496,9 +559,11 @@ class Calendar_Controller extends Page_Controller {
 		RSSFeed::linkToFeed($this->Link() . "rss", $this->RSSTitle ? $this->RSSTitle : $this->Title);
 		Requirements::themedCSS('calendar','event_calendar');
 		if(!Calendar::config()->jquery_included) {
-			Requirements::javascript(THIRDPARTY_DIR.'/jquery/jquery.js');
+//			Requirements::javascript(THIRDPARTY_DIR.'/jquery/jquery.js');
+            Requirements::javascript('silverstripe/admin:thirdparty/jquery/jquery.js');
 		}
-		Requirements::javascript('event_calendar/javascript/calendar.js');
+//		Requirements::javascript('event_calendar/javascript/calendar.js');
+		Requirements::javascript('unclecheese/event_calendar:javascript/calendar.js');
 	}
 
 	public function getStartDate() {
@@ -517,6 +582,7 @@ class Calendar_Controller extends Page_Controller {
 		$this->view = "default";
 		$this->startDate = sfDate::getInstance();
 		$this->endDate = sfDate::getInstance()->addMonth($this->DefaultFutureMonths);
+
 	}
 
 	public function setTodayView() {
@@ -572,7 +638,7 @@ class Calendar_Controller extends Page_Controller {
 		return array();
 	}
 
-	public function index(SS_HTTPRequest $r) {
+	public function index(HTTPRequest $r) {
 		$this->extend('index',$r);
 		switch($this->DefaultView) {
 			case "month":
@@ -612,32 +678,31 @@ class Calendar_Controller extends Page_Controller {
 				return $this->respond();
 			break;
 
-
 		}
 	}
 
-	public function today(SS_HTTPRequest $r) {
+	public function today(HTTPRequest $r) {
 		$this->setTodayView();
 		return $this->respond();
 	}
 
-	public function week(SS_HTTPRequest $r) {
+	public function week(HTTPRequest $r) {
 		$this->setWeekView();
 		return $this->respond();
 	}
 
-	public function weekend(SS_HTTPRequest $r) {
+	public function weekend(HTTPRequest $r) {
 		$this->setWeekendView();
 		return $this->respond();
 	}
 
 
-	public function month(SS_HTTPRequest $r) {
+	public function month(HTTPRequest $r) {
 		$this->setMonthView();
 		return $this->respond();
 	}
 
-	public function show(SS_HTTPRequest $r) {
+	public function show(HTTPRequest $r) {
 		$this->parseURL($r);
 		return $this->respond();
 	}
@@ -649,7 +714,8 @@ class Calendar_Controller extends Page_Controller {
 			$event->Title = strip_tags($event->DateRange()) . " : " . $event->getTitle();
 			$event->Description = $event->getContent();
 		}
-		$rss_title = $this->RSSTitle ? $this->RSSTitle : sprintf(_t("Calendar.UPCOMINGEVENTSFOR","Upcoming Events for %s"),$this->Title);
+//		$rss_title = $this->RSSTitle ? $this->RSSTitle : sprintf(_t("Calendar.UPCOMINGEVENTSFOR","Upcoming Events for %s"),$this->Title);
+		$rss_title = $this->RSSTitle ? $this->RSSTitle : sprintf(_t(Calendar::class.".UPCOMINGEVENTSFOR","Upcoming Events for %s"),$this->Title);
 		$rss = new RSSFeed($events, $this->Link(), $rss_title, "", "Title", "Description");
 
 		if(is_int($rss->lastModified)) {
@@ -668,7 +734,7 @@ class Calendar_Controller extends Page_Controller {
 		return $this->getResponse();
 	}
 
-	public function monthjson(SS_HTTPRequest $r) {
+	public function monthjson(HTTPRequest $r) {
 		if(!$r->param('ID')) return false;
 
         //Increase the per page limit to 500 as the AJAX request won't look for further pages
@@ -709,7 +775,7 @@ class Calendar_Controller extends Page_Controller {
 		$writer->sendDownload();
 	}
 
-	public function ics(SS_HTTPRequest $r) {
+	public function ics(HTTPRequest $r) {
 		$feed = false;
 		$announcement = false;
 		$id = $r->param('ID');
@@ -785,7 +851,7 @@ class Calendar_Controller extends Page_Controller {
 		}
 	}
 
-	public function parseURL(SS_HTTPRequest $r) {
+	public function parseURL(HTTPRequest $r) {
 		if(!$r->param('ID')) return;
 		$this->startDate = sfDate::getInstance(CalendarUtil::get_date_from_string($r->param('ID')));
 		if($r->param('OtherID')) {
@@ -953,7 +1019,8 @@ class Calendar_Controller extends Page_Controller {
 				$y = new DropdownField('Year','', $year_map)
 			),
 			new FieldList (
-				new FormAction('doMonthJump', _t('Calendar.JUMP','Go'))
+//				new FormAction('doMonthJump', _t('Calendar.JUMP','Go'))
+				new FormAction('doMonthJump', _t(Calendar::class.'.JUMP','Go'))
 			)
 		);
 
