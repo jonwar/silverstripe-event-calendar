@@ -80,8 +80,7 @@ class CalendarUtil {
 		if(is_array($customDateTemplates) && isset($customDateTemplates[$key]))
 			$template = $customDateTemplates[$key];
 		else {
-//			$template = _t("Calendar.$key");
-			$template = _t(Calendar::class.".$key");
+			$template = _t(Calendar::class.".$key", $key);
 		}
 
 		return str_replace(self::$format_character_placeholders, self::format_character_replacements($start,$end), $template);
@@ -180,7 +179,6 @@ class CalendarUtil {
 		if($dateFormat = CalendarDateTime::config()->date_format_override) {
 			return $dateFormat;
 		}
-//		return _t('CalendarDateTime.DATEFORMAT','mdy');
 		return _t(CalendarDateTime::class.'.DATEFORMAT','mdy');
 	}
 
@@ -188,12 +186,10 @@ class CalendarUtil {
 		if($timeFormat = CalendarDateTime::config()->time_format_override) {
 			return $timeFormat;
 		}
-//		return _t('CalendarDateTime.TIMEFORMAT','24');
 		return _t(CalendarDateTime::class.'.TIMEFORMAT','24');
 	}
 
 	public static function get_first_day_of_week() {
-//		$result = strtolower(_t('CalendarDateTime.FIRSTDAYOFWEEK','monday'));
 		$result = strtolower(_t(CalendarDateTime::class.'.FIRSTDAYOFWEEK','monday'));
 		return ($result == "monday") ? sfTime::MONDAY : sfTime::SUNDAY;
 	}

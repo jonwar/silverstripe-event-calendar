@@ -27,9 +27,13 @@ use SilverStripe\Control\RSS\RSSFeed;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTP;
+//use SilverStripe\Control\Middleware\HTTPCacheControlMiddleware;
 
 use Altumo\Utils\sfDate\sfDate;
 use Altumo\Utils\sfDate\sfTime;
+
+//use SilverStripe\Core\Injector\Injector;
+//use Psr\Log\LoggerInterface;
 
 class Calendar extends Page {
 
@@ -71,8 +75,6 @@ class Calendar extends Page {
 
 	private static $reccurring_event_index = 0;
 
-//	private static $icon = "event_calendar/images/calendar";
-//  private static $icon = 'unclecheese/event_calendar: images/calendar-file.gif';
 	private static $icon_class = "font-icon-calendar";
 
 	private static $description = "A collection of Calendar Events";
@@ -113,15 +115,8 @@ class Calendar extends Page {
 //			Requirements::javascript('event_calendar/javascript/calendar_cms.js');
 			Requirements::javascript('unclecheese/event_calendar:javascript/calendar_cms.js');
 
-//			$configuration = _t('Calendar.CONFIGURATION','Configuration');
 			$configuration = _t(Calendar::class.'.CONFIGURATION','Configuration');
 			$f->addFieldsToTab("Root.$configuration", array(
-//				DropdownField::create('DefaultView',_t('Calendar.DEFAULTVIEW','Default view'), array (
-//					'upcoming' => _t('Calendar.UPCOMINGVIEW',"Show a list of upcoming events."),
-//					'month' => _t('Calendar.MONTHVIEW',"Show this month's events."),
-//					'week' => _t('Calendar.WEEKVIEW',"Show this week's events. If none, fall back on this month's"),
-//					'today' => _t('Calendar.TODAYVIEW',"Show today's events. If none, fall back on this week's events"),
-//					'weekend' => _t('Calendar.WEEKENDVIEW',"Show this weekend's events.")
 				DropdownField::create('DefaultView',_t(Calendar::class.'.DEFAULTVIEW','Default view'), array (
 					'upcoming' => _t(Calendar::class.'.UPCOMINGVIEW',"Show a list of upcoming events."),
 					'month' => _t(Calendar::class.'.MONTHVIEW',"Show this month's events."),
@@ -129,18 +124,13 @@ class Calendar extends Page {
 					'today' => _t(Calendar::class.'.TODAYVIEW',"Show today's events. If none, fall back on this week's events"),
 					'weekend' => _t(Calendar::class.'.WEEKENDVIEW',"Show this weekend's events.")
 				))->addExtraClass('defaultView'),
-//				NumericField::create('DefaultFutureMonths', _t('Calendar.DEFAULTFUTUREMONTHS','Number maximum number of future months to show in default view'))->addExtraClass('defaultFutureMonths'),
 				NumericField::create('DefaultFutureMonths', _t(Calendar::class.'.DEFAULTFUTUREMONTHS','Number maximum number of future months to show in default view'))->addExtraClass('defaultFutureMonths'),
-//				NumericField::create('EventsPerPage', _t('Calendar.EVENTSPERPAGE','Events per page')),
 				NumericField::create('EventsPerPage', _t(Calendar::class.'.EVENTSPERPAGE','Events per page')),
-//				TextField::create('DefaultDateHeader', _t('Calendar.DEFAULTDATEHEADER','Default date header (displays when no date range has been selected)')),
 				TextField::create('DefaultDateHeader', _t(Calendar::class.'.DEFAULTDATEHEADER','Default date header (displays when no date range has been selected)')),
-//				NumericField::create('OtherDatesCount', _t('Calendar.NUMBERFUTUREDATES','Number of future dates to show for repeating events'))
 				NumericField::create('OtherDatesCount', _t(Calendar::class.'.NUMBERFUTUREDATES','Number of future dates to show for repeating events'))
 			));
 
 			// Announcements
-//			$announcements = _t('Calendar.Announcements','Announcements');
 			$announcements = _t(Calendar::class.'.Announcements','Announcements');
 			$f->addFieldToTab("Root.$announcements", $announcementsField = GridField::create(
 					"Announcements",
@@ -148,11 +138,9 @@ class Calendar extends Page {
 					$self->Announcements(),
 					GridFieldConfig_RecordEditor::create()
 				));
-//			$announcementsField->setDescription(_t('Calendar.ANNOUNCEMENTDESCRIPTION','Announcements are simple entries you can add to your calendar that do not have detail pages, e.g. "Office closed"'));
 			$announcementsField->setDescription(_t(Calendar::class.'.ANNOUNCEMENTDESCRIPTION','Announcements are simple entries you can add to your calendar that do not have detail pages, e.g. "Office closed"'));
 
 			// Feeds
-//			$feeds = _t('Calendar.FEEDS','Feeds');
 			$feeds = _t(Calendar::class.'.FEEDS','Feeds');
 			$f->addFieldToTab("Root.$feeds", $feedsField = GridField::create(
 				"Feeds",
@@ -160,20 +148,17 @@ class Calendar extends Page {
 				$self->Feeds(),
 				GridFieldConfig_RecordEditor::create()
 			));
-//			$feedsField->setDescription(_t('Calendar.ICSFEEDDESCRIPTION','Add ICS feeds to your calendar to include events from external sources, e.g. a Google Calendar'));
 			$feedsField->setDescription(_t(Calendar::class.'.ICSFEEDDESCRIPTION','Add ICS feeds to your calendar to include events from external sources, e.g. a Google Calendar'));
 
 			$otherCals = Calendar::get()->exclude(array("ID" => $self->ID));
 			if($otherCals->exists()) {
 				$f->addFieldToTab("Root.$feeds", new CheckboxSetField(
 					'NestedCalendars',
-//					_t('Calendar.NESTEDCALENDARS','Include events from these calendars'),
 					_t(Calendar::class.'.NESTEDCALENDARS','Include events from these calendars'),
 					$otherCals->map('ID', 'Link')
 				));
 			}
 
-//			$f->addFieldToTab("Root.Main", new TextField('RSSTitle', _t('Calendar.RSSTITLE','Title of RSS Feed')),'Content');
 			$f->addFieldToTab("Root.Main", new TextField('RSSTitle', _t(Calendar::class.'.RSSTITLE','Title of RSS Feed')),'Content');
 
 		});
@@ -308,7 +293,6 @@ class Calendar extends Page {
 		}
 */
 		$list = $this->AllChildren();	//TODO: remove when above is working
-//exit($list[2]->Title);
 
 		return $list;
 	}
@@ -556,13 +540,13 @@ class CalendarController extends PageController {
 
 	public function init() {
 		parent::init();
-		RSSFeed::linkToFeed($this->Link() . "rss", $this->RSSTitle ? $this->RSSTitle : $this->Title);
+
+		RSSFeed::linkToFeed($this->Link('rss'), $this->RSSTitle ? $this->RSSTitle : $this->Title);
+
 		Requirements::themedCSS('calendar','event_calendar');
 		if(!Calendar::config()->jquery_included) {
-//			Requirements::javascript(THIRDPARTY_DIR.'/jquery/jquery.js');
             Requirements::javascript('silverstripe/admin:thirdparty/jquery/jquery.js');
 		}
-//		Requirements::javascript('event_calendar/javascript/calendar.js');
 		Requirements::javascript('unclecheese/event_calendar:javascript/calendar.js');
 	}
 
@@ -711,27 +695,25 @@ class CalendarController extends PageController {
 		$this->setDefaultView();
 		$events = $this->Events();
 		foreach($events as $event) {
-			$event->Title = strip_tags($event->DateRange()) . " : " . $event->getTitle();
-			$event->Description = $event->getContent();
+			$event->Title = $event->EventStart . ' - ' . $event->EventEnd . ' : ' . $event->getTitle();
+			$event->Description = $event->Content;
 		}
-//		$rss_title = $this->RSSTitle ? $this->RSSTitle : sprintf(_t("Calendar.UPCOMINGEVENTSFOR","Upcoming Events for %s"),$this->Title);
-		$rss_title = $this->RSSTitle ? $this->RSSTitle : sprintf(_t(Calendar::class.".UPCOMINGEVENTSFOR","Upcoming Events for %s"),$this->Title);
-		$rss = new RSSFeed($events, $this->Link(), $rss_title, "", "Title", "Description");
 
-		if(is_int($rss->lastModified)) {
-			HTTP::register_modification_timestamp($rss->lastModified);
-			header('Last-Modified: ' . gmdate("D, d M Y H:i:s", $rss->lastModified) . ' GMT');
-		}
-		if(!empty($rss->etag)) {
-			HTTP::register_etag($rss->etag);
-		}
-		$xml = str_replace('&nbsp;', '&#160;', $rss->renderWith('RSSFeed'));
-		$xml = preg_replace('/<!--(.|\s)*?-->/', '', $xml);
-		$xml = trim($xml);
-		HTTP::add_cache_headers();
-		$this->getResponse()->addHeader('Content-Type', 'application/rss+xml');
-		$this->getResponse()->setBody($xml);
-		return $this->getResponse();
+		$rss_title = $this->RSSTitle ? $this->RSSTitle : sprintf(_t(Calendar::class.".UPCOMINGEVENTSFOR","Upcoming Events for %s"),$this->Title);
+
+		$rss = new RSSFeed(
+			$events,
+			$this->Link(),
+			$rss_title
+		);
+
+//		if(is_int($rss->lastModified)) {
+//			HTTPCacheControlMiddleware::registerModificationDate($rss->lastModified);
+//			header('Last-Modified: ' . gmdate("D, d M Y H:i:s", $rss->lastModified) . ' GMT');
+//		}
+
+		return $rss->outputToBrowser();
+
 	}
 
 	public function monthjson(HTTPRequest $r) {
@@ -1019,7 +1001,6 @@ class CalendarController extends PageController {
 				$y = new DropdownField('Year','', $year_map)
 			),
 			new FieldList (
-//				new FormAction('doMonthJump', _t('Calendar.JUMP','Go'))
 				new FormAction('doMonthJump', _t(Calendar::class.'.JUMP','Go'))
 			)
 		);
